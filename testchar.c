@@ -150,15 +150,15 @@ static struct file_operations fops = {
 
 /** Function called when initialized **/
 static int __init testchar_init(void){
-	printk(KERN_INFO "TestChar: Initializing the TestChar LKM \n");
+	printk(KERN_INFO "MorseModule: Initializing the TestChar LKM \n");
 
 	//Dynamically allocate a major number
 	majorNumber= register_chrdev(0, DEVICE_NAME, &fops);
 	if (majorNumber<0){
-		printk(KERN_ALERT "TestChar failed to register a major number\n");
+		printk(KERN_ALERT "MorseModule failed to register a major number\n");
 		return majorNumber;
 	}
-	printk(KERN_INFO "TestChar: registered correctly with major number %d\n", majorNumber);
+	printk(KERN_INFO "MorseModule: registered correctly with major number %d\n", majorNumber);
 
 	//Register device to class
 	testcharClass=class_create(THIS_MODULE, CLASS_NAME);
@@ -167,7 +167,7 @@ static int __init testchar_init(void){
 		printk(KERN_ALERT "Failed to register device class\n");
 		return PTR_ERR(testcharClass);
 	}
-	printk(KERN_INFO "TestChar: device class registered correctly\n");
+	printk(KERN_INFO "MorseModule: device class registered correctly\n");
 
 	//Register the device driver
 	testcharDevice= device_create(testcharClass, NULL, MKDEV(majorNumber, 0), NULL, DEVICE_NAME);
@@ -177,7 +177,7 @@ static int __init testchar_init(void){
 		printk(KERN_ALERT "Faied to create the device\n");
 		return PTR_ERR(testcharDevice);
 	}
-	printk(KERN_INFO "TestChar: device class registered correctly \n");
+	printk(KERN_INFO "MorseModule: device class registered correctly \n");
 
 	//Map memory for GPIO
 	gpio_addr = ioremap(GPIO1_START_ADDR, GPIO1_SIZE);
@@ -211,7 +211,7 @@ static void __exit testchar_exit(void){
 	class_unregister(testcharClass);
 	class_destroy(testcharClass);
 	unregister_chrdev(majorNumber, DEVICE_NAME);
-	printk(KERN_INFO "TestChar: Goodbye from the LKM!\n");
+	printk(KERN_INFO "MorseModule: Goodbye from the LKM!\n");
 }
 
 /**-----------------------------------------------------------**/
@@ -336,12 +336,12 @@ ssize_t write_vaddr_disk(void * v, size_t is) {
 static int device_open(struct inode *inodep, struct file *filep){
     if(!mutex_trylock(&ebbchar_mutex)){    /// Try to acquire the mutex (i.e., put the lock on/down)
                                       /// returns 1 if successful and 0 if there is contention
-    printk(KERN_ALERT "EBBChar: Device in use by another process");
+    printk(KERN_ALERT "MorseModule: Device in use by another process");
     return -EBUSY;
 	}
 
 	numberOpens++;
-	printk(KERN_INFO "TestChar: Device has been opened %d time(s)\n", numberOpens);
+	printk(KERN_INFO "MorseModule: Device has been opened %d time(s)\n", numberOpens);
 	return 0;
 }
 
@@ -353,11 +353,11 @@ static ssize_t device_read(struct file *filep, char *buffer, size_t len, loff_t 
 	error_count=copy_to_user(buffer, message, size_of_message);
 
 	if(error_count==0){
-		printk(KERN_INFO "TestChar: Sent %d characters to the user \n", size_of_message);
+		printk(KERN_INFO "MorseModule: Sent %d characters to the user \n", size_of_message);
 		return (size_of_message=0);
 	}
 	else {
-		printk(KERN_INFO "TestChar: Failed to send %d characters to the user\n", error_count);
+		printk(KERN_INFO "MorseModule: Failed to send %d characters to the user\n", error_count);
 		return -EFAULT;
 	}
 }
@@ -368,7 +368,7 @@ static ssize_t device_read(struct file *filep, char *buffer, size_t len, loff_t 
 static ssize_t device_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
 	sprintf(message, "%s", buffer);
 	size_of_message = strlen(message);
-	printk(KERN_INFO "TestChar: Received %d  characters from the user \n", len);
+	printk(KERN_INFO "MorseModule: Received %d  characters from the user \n", len);
 	printk(KERN_INFO "Converting your string: \"%s\" into morse code... \n", message);
 	
 	//store string as morse code into morseBuffer
@@ -389,21 +389,20 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 	for (morse_index=0; morse_index <= sizeof(morseBuffer); morse_index++){
 
 		if(morseBuffer[morse_index] == '-'){
-			printk(KERN_INFO "dash\n");
+			msleep(500);			
+			printk(KERN_INFO "LED STATUS: dash\n");
 			BBBledOn();
-			msleep(50000);
+			msleep(700);
 		 	BBBledOff();
-			
 		}
 		else if (morseBuffer[morse_index] == '.'){
-			printk(KERN_INFO "dot\n");
+			msleep(500);			
+			printk(KERN_INFO "LED STATUS: dot\n");
 			BBBledOn();
-			msleep(1000);
+			msleep(300);
 		 	BBBledOff();
 		}
 	}
-
-
 
 	return len;
 }
@@ -413,12 +412,9 @@ static ssize_t device_write(struct file *filep, const char *buffer, size_t len, 
 static int device_release (struct inode *inodep, struct file *filep){
 	mutex_unlock(&ebbchar_mutex);     
 
-	printk(KERN_INFO "TestChar: Device Succesfully Closed\n");
+	printk(KERN_INFO "MorseModule: Device Succesfully Closed\n");
 	return 0;
 }
-
-
-/** Adding MultiUser Capability **/
 
 
 
